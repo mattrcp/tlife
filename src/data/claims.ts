@@ -1,0 +1,266 @@
+import type { Claim, ClaimFile, Factor, Hospital } from '../types';
+
+/** Fixed "now" so date filters behave the same in every demo. */
+export const DEMO_NOW = '2026-11-14T10:00:00+07:00';
+
+/** Partner hospitals that submit claims through the direct-billing platform. */
+export const HOSPITALS: Hospital[] = [
+  'Bangkok Hospital',
+  'Bumrungrad International',
+  'Siriraj Hospital',
+  'Ramathibodi Hospital',
+  'Samitivej Sukhumvit',
+  'Phyathai 2',
+  'Vejthani Hospital',
+  'BNH Hospital',
+];
+
+/** Claims-desk contact for each partner hospital (synthetic). */
+export const HOSPITAL_CONTACTS: Record<Hospital, { coordinator: string; phone: string; email: string }> = {
+  'Bangkok Hospital': { coordinator: 'Khun Siriwan (Claims desk)', phone: '02-310-3000', email: 'claims@bangkokhospital.demo' },
+  'Bumrungrad International': { coordinator: 'Khun Ploy (Claims desk)', phone: '02-066-8888', email: 'claims@bumrungrad.demo' },
+  'Siriraj Hospital': { coordinator: 'Khun Anong (Billing office)', phone: '02-419-7000', email: 'claims@siriraj.demo' },
+  'Ramathibodi Hospital': { coordinator: 'Khun Weera (Billing office)', phone: '02-201-1000', email: 'claims@rama.demo' },
+  'Samitivej Sukhumvit': { coordinator: 'Khun Nong (Claims desk)', phone: '02-022-2222', email: 'claims@samitivej.demo' },
+  'Phyathai 2': { coordinator: 'Khun Suda (Claims desk)', phone: '02-617-2444', email: 'claims@phyathai.demo' },
+  'Vejthani Hospital': { coordinator: 'Khun Mai (Claims desk)', phone: '02-734-0000', email: 'claims@vejthani.demo' },
+  'BNH Hospital': { coordinator: 'Khun Pim (Claims desk)', phone: '02-022-0700', email: 'claims@bnh.demo' },
+};
+
+export const ROUTES = [
+  'Fast-track auto-pay',
+  'Standard assessor — Health',
+  'Senior adjuster — Health',
+  'Senior adjuster — Death claims',
+  'Investigation unit',
+  'Request missing documents',
+] as const;
+
+const pdf = (name: string, sizeKb: number): ClaimFile => ({ name, kind: 'pdf', sizeKb });
+const img = (name: string, sizeKb: number): ClaimFile => ({ name, kind: 'image', sizeKb });
+const fx = (...pairs: [string, number][]): Factor[] => pairs.map(([label, points]) => ({ label, points }));
+const at = (d: string) => `${d}:00+07:00`;
+
+export const CLAIMS: Claim[] = [
+  // ---------- High priority ----------
+  {
+    id: 'CLM-10482', client: 'Somchai Phongsri', policyNo: 'TL-2019-0048213', receivedAt: at('2026-11-14T09:12'),
+    hospital: 'Bangkok Hospital', tags: ['Life', 'Death'], amount: 3_000_000,
+    description: 'Insured was admitted to the ICU on 7 Nov 2026 with multi-organ failure and died during admission on 10 Nov. The hospital submitted the final inpatient bill; the death benefit is also claimed. The policy was reinstated 14 months ago.',
+    files: [pdf('final_hospital_bill.pdf', 744), pdf('death_certificate.pdf', 412), pdf('policy_document.pdf', 1280)],
+    aiScore: 92, confidence: 87,
+    factors: fx(['Death within 2 years of reinstatement', 35], ['Sum assured ฿3.0M (top 5% of book)', 30], ['Death during admission — benefit triggered', 27]),
+    suggestedRoute: 'Senior adjuster — Death claims', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10479', client: 'Nattaya Kittisak', policyNo: 'TL-2021-0193377', receivedAt: at('2026-11-14T08:47'),
+    hospital: 'Bumrungrad International', tags: ['Hospital', 'ICU'], amount: 420_000,
+    description: 'Insured admitted to ICU for 5 days with severe pneumonia, transferred to general ward and discharged on 12 Nov. Hospital bill exceeds the room & board sub-limit.',
+    files: [pdf('discharge_summary.pdf', 530), pdf('itemised_hospital_bill.pdf', 744), pdf('icu_chart_extract.pdf', 1022), pdf('claim_form.pdf', 210), img('id_card.jpg', 640)],
+    aiScore: 81, confidence: 91,
+    factors: fx(['ICU stay ≥ 3 days', 30], ['Bill exceeds room & board sub-limit', 28], ['Claim amount ฿420k (top 10%)', 23]),
+    suggestedRoute: 'Senior adjuster — Health', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10471', client: 'Wichai Thongdee', policyNo: 'TL-2026-0310845', receivedAt: at('2026-11-13T10:20'),
+    hospital: 'Siriraj Hospital', tags: ['Critical illness'], amount: 1_500_000,
+    description: 'Critical illness claim for stage 2 colon cancer diagnosed on 2 Nov 2026. Policy started in August 2026. Hospital records show the insured was seen for related abdominal symptoms before the policy start date.',
+    files: [pdf('pathology_report.pdf', 380), pdf('oncologist_letter.pdf', 190), pdf('hospital_visit_history.pdf', 420)],
+    aiScore: 88, confidence: 55,
+    factors: fx(['Diagnosis within 90 days of policy start', 40], ['Prior symptoms in hospital records', 28], ['Sum assured ฿1.5M', 20]),
+    suggestedRoute: 'Investigation unit', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10466', client: 'Supaporn Limsakul', policyNo: 'TL-2018-0072650', receivedAt: at('2026-11-12T19:45'),
+    hospital: 'Phyathai 2', tags: ['Accident', 'Hospital'], amount: 285_000,
+    description: 'Motorcycle accident on 9 Nov. Insured has a fractured femur with surgical fixation and a 6-night inpatient stay. Police report is attached.',
+    files: [pdf('police_report.pdf', 310), pdf('operative_note.pdf', 220), pdf('hospital_bill.pdf', 540), img('xray_femur.jpg', 1900)],
+    aiScore: 76, confidence: 82,
+    factors: fx(['Surgery + 6-night admission', 30], ['Accident rider triggered', 26], ['Claim amount ฿285k', 20]),
+    suggestedRoute: 'Senior adjuster — Health', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10460', client: 'Prasert Mahachai', policyNo: 'TL-2015-0011902', receivedAt: at('2026-11-11T07:30'),
+    hospital: 'Ramathibodi Hospital', tags: ['Life', 'Death', 'Accident'], amount: 2_000_000,
+    description: 'Insured was admitted to the trauma unit after a road accident on 5 Nov and died during admission on 6 Nov. The hospital submitted the final bill; the accidental death benefit is claimed alongside the base cover. Two beneficiaries are named on the policy.',
+    files: [pdf('final_hospital_bill.pdf', 610), pdf('police_report.pdf', 350), pdf('death_certificate.pdf', 398)],
+    aiScore: 73, confidence: 78,
+    factors: fx(['Accidental death — double indemnity', 30], ['Multiple beneficiaries', 25], ['Sum assured ฿2.0M', 18]),
+    suggestedRoute: 'Senior adjuster — Death claims', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10455', client: 'Ratana Chaiyaporn', policyNo: 'TL-2020-0158834', receivedAt: at('2026-11-10T13:15'),
+    hospital: 'Samitivej Sukhumvit', tags: ['Hospital', 'ICU'], amount: 360_000,
+    description: 'Admitted with dengue haemorrhagic fever and kept in ICU for 3 days. Recovered and discharged on 8 Nov. Second ICU claim this year.',
+    files: [pdf('discharge_summary.pdf', 470), pdf('hospital_bill.pdf', 520), pdf('lab_results.pdf', 300)],
+    aiScore: 70, confidence: 84,
+    factors: fx(['ICU stay ≥ 3 days', 28], ['Second ICU claim in 12 months', 24], ['Claim amount ฿360k', 18]),
+    suggestedRoute: 'Senior adjuster — Health', status: 'ai_suggested',
+  },
+
+  // ---------- Medium priority ----------
+  {
+    id: 'CLM-10476', client: 'Arthit Srisuk', policyNo: 'TL-2022-0207719', receivedAt: at('2026-11-13T16:30'),
+    hospital: 'Vejthani Hospital', tags: ['Hospital'], amount: 98_000,
+    description: 'Laparoscopic appendectomy with a 2-night stay. All documents are complete and the bill is within the plan limits.',
+    files: [pdf('discharge_summary.pdf', 280), pdf('hospital_bill.pdf', 330)],
+    aiScore: 58, confidence: 88,
+    factors: fx(['Surgical admission', 25], ['Claim amount ฿98k', 20], ['First claim on policy', 13]),
+    suggestedRoute: 'Standard assessor — Health', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10474', client: 'Kanya Rattanakorn', policyNo: 'TL-2023-0249980', receivedAt: at('2026-11-13T14:02'),
+    hospital: 'Bangkok Hospital', tags: ['Hospital', 'Missing doc'], amount: 64_000,
+    description: 'Wrist fracture treated with a cast and a 1-night stay. The hospital submitted only the itemised bill; the discharge summary and medical certificate are missing.',
+    files: [pdf('itemised_bill.pdf', 240)],
+    aiScore: 44, confidence: 90,
+    factors: fx(['Required documents missing (2)', 20], ['Inpatient admission', 14], ['Claim amount ฿64k', 10]),
+    suggestedRoute: 'Request missing documents', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10481', client: 'Thanakorn Boonmee', policyNo: 'TL-2017-0064431', receivedAt: at('2026-11-14T07:55'),
+    hospital: 'BNH Hospital', tags: ['Hospital'], amount: 135_000,
+    description: 'Admitted for chest pain. Cardiac catheterisation was normal and the insured was discharged after 3 nights. The diagnosis code on the bill does not match the doctor’s note.',
+    files: [pdf('doctor_note.pdf', 160), pdf('hospital_bill.pdf', 410), pdf('claim_form.pdf', 200)],
+    aiScore: 62, confidence: 58,
+    factors: fx(['Diagnosis code mismatch', 26], ['Invasive diagnostic procedure', 20], ['Claim amount ฿135k', 16]),
+    suggestedRoute: 'Standard assessor — Health', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10468', client: 'Malee Jantarat', policyNo: 'TL-2019-0120056', receivedAt: at('2026-11-12T11:40'),
+    hospital: 'Bumrungrad International', tags: ['Critical illness', 'Missing doc'], amount: 800_000,
+    description: 'Critical illness claim for a stroke. The hospital’s specialist report has not been submitted yet; only the claim form and ID are on file.',
+    files: [pdf('claim_form.pdf', 190), img('id_card.jpg', 610)],
+    aiScore: 52, confidence: 86,
+    factors: fx(['Specialist report missing', 22], ['Critical illness benefit ฿800k', 18], ['Policy older than 5 years', 12]),
+    suggestedRoute: 'Request missing documents', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10463', client: 'Somsak Wongsawat', policyNo: 'TL-2016-0039917', receivedAt: at('2026-11-11T15:10'),
+    hospital: 'Phyathai 2', tags: ['Accident', 'Hospital'], amount: 150_000,
+    description: 'Fell from a ladder at home and was admitted for 4 nights with concussion and broken ribs. Documents are complete.',
+    files: [pdf('discharge_summary.pdf', 300), pdf('hospital_bill.pdf', 380), pdf('ct_scan_report.pdf', 250)],
+    aiScore: 66, confidence: 80,
+    factors: fx(['4-night admission', 28], ['Accident rider triggered', 22], ['Claim amount ฿150k', 16]),
+    suggestedRoute: 'Standard assessor — Health', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10450', client: 'Jiraporn Nakprasert', policyNo: 'TL-2024-0268803', receivedAt: at('2026-11-08T09:00'),
+    hospital: 'Vejthani Hospital', tags: ['Hospital'], amount: 72_000,
+    description: 'Gastroenteritis with dehydration and a 2-night stay. The bill and discharge summary are attached, and the amounts are consistent.',
+    files: [pdf('discharge_summary.pdf', 240), pdf('hospital_bill.pdf', 290)],
+    aiScore: 48, confidence: 85,
+    factors: fx(['Inpatient admission', 20], ['Policy under 2 years old', 16], ['Claim amount ฿72k', 12]),
+    suggestedRoute: 'Standard assessor — Health', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10444', client: 'Kittisak Duangdee', policyNo: 'TL-2020-0171120', receivedAt: at('2026-11-05T17:25'),
+    hospital: 'Samitivej Sukhumvit', tags: ['OPD', 'Accident'], amount: 38_000,
+    description: 'Deep cut to the hand from a kitchen accident, needing stitches and 3 follow-up outpatient visits. A tendon check is pending.',
+    files: [pdf('opd_bill.pdf', 330), pdf('doctor_note.pdf', 140)],
+    aiScore: 55, confidence: 83,
+    factors: fx(['Multiple OPD visits for one event', 22], ['Accident rider triggered', 19], ['Follow-up still open', 14]),
+    suggestedRoute: 'Standard assessor — Health', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10438', client: 'Orawan Phetchara', policyNo: 'TL-2022-0219964', receivedAt: at('2026-11-02T10:05'),
+    hospital: 'BNH Hospital', tags: ['Hospital', 'Missing doc'], amount: 55_000,
+    description: 'Tonsillectomy with an overnight stay. The uploaded bill is blurred and unreadable, and the claim form is unsigned.',
+    files: [img('bill_scan_blurred.jpg', 1100), pdf('claim_form_unsigned.pdf', 180)],
+    aiScore: 41, confidence: 92,
+    factors: fx(['Unreadable document', 18], ['Unsigned claim form', 13], ['Surgical admission', 10]),
+    suggestedRoute: 'Request missing documents', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10431', client: 'Chaiwat Kamolrat', policyNo: 'TL-2014-0008876', receivedAt: at('2026-10-28T14:50'),
+    hospital: 'Siriraj Hospital', tags: ['Hospital'], amount: 118_000,
+    description: 'Kidney stone removal by ureteroscopy, with a 2-night stay. A similar claim was made 8 months ago.',
+    files: [pdf('discharge_summary.pdf', 260), pdf('hospital_bill.pdf', 350), pdf('ultrasound_report.pdf', 210)],
+    aiScore: 60, confidence: 79,
+    factors: fx(['Repeat condition within 12 months', 24], ['Surgical procedure', 20], ['Claim amount ฿118k', 16]),
+    suggestedRoute: 'Standard assessor — Health', status: 'ai_suggested',
+  },
+
+  // ---------- Low priority ----------
+  {
+    id: 'CLM-10477', client: 'Pimchanok Wattana', policyNo: 'TL-2023-0237741', receivedAt: at('2026-11-13T11:05'),
+    hospital: 'Bangkok Hospital', tags: ['OPD'], amount: 1_850,
+    description: 'Outpatient visit for flu. The bill and doctor’s certificate are attached and the amount is within the OPD limit.',
+    files: [pdf('opd_bill.pdf', 120)],
+    aiScore: 21, confidence: 96,
+    factors: fx(['Routine OPD visit', 12], ['Within OPD limit', 9]),
+    suggestedRoute: 'Fast-track auto-pay', status: 'approved', finalRoute: 'Fast-track auto-pay',
+  },
+  {
+    id: 'CLM-10483', client: 'Napat Saelim', policyNo: 'TL-2025-0287712', receivedAt: at('2026-11-14T09:40'),
+    hospital: 'Samitivej Sukhumvit', tags: ['OPD'], amount: 1_200,
+    description: 'Outpatient dental filling. Covered under the OPD dental rider, with the bill attached.',
+    files: [pdf('dental_bill.pdf', 110)],
+    aiScore: 18, confidence: 97,
+    factors: fx(['Routine OPD visit', 10], ['Within rider limit', 8]),
+    suggestedRoute: 'Fast-track auto-pay', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10480', client: 'Duangjai Rungroj', policyNo: 'TL-2021-0180043', receivedAt: at('2026-11-14T08:10'),
+    hospital: 'Phyathai 2', tags: ['OPD'], amount: 3_400,
+    description: 'Outpatient visit for an allergic skin rash, with medication. All documents are present.',
+    files: [pdf('opd_bill.pdf', 120), pdf('doctor_certificate.pdf', 110)],
+    aiScore: 26, confidence: 94,
+    factors: fx(['Routine OPD visit', 14], ['Within OPD limit', 12]),
+    suggestedRoute: 'Fast-track auto-pay', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10472', client: 'Anucha Laohapan', policyNo: 'TL-2019-0131158', receivedAt: at('2026-11-13T09:30'),
+    hospital: 'Vejthani Hospital', tags: ['Hospital'], amount: 24_000,
+    description: 'Overnight observation after a fainting episode, with no clear diagnosis on discharge. The hospital name on the bill differs from the admission letter.',
+    files: [pdf('admission_letter.pdf', 150), pdf('hospital_bill.pdf', 260)],
+    aiScore: 33, confidence: 52,
+    factors: fx(['Hospital name mismatch', 18], ['Unclear diagnosis', 15]),
+    suggestedRoute: 'Standard assessor — Health', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10465', client: 'Siriporn Thanawat', policyNo: 'TL-2022-0225590', receivedAt: at('2026-11-12T16:00'),
+    hospital: 'BNH Hospital', tags: ['OPD'], amount: 950,
+    description: 'Outpatient eye check-up for conjunctivitis. The bill is attached.',
+    files: [pdf('opd_bill.pdf', 100)],
+    aiScore: 15, confidence: 98,
+    factors: fx(['Routine OPD visit', 9], ['Within OPD limit', 6]),
+    suggestedRoute: 'Fast-track auto-pay', status: 'approved', finalRoute: 'Fast-track auto-pay',
+  },
+  {
+    id: 'CLM-10458', client: 'Worawit Chansiri', policyNo: 'TL-2020-0166271', receivedAt: at('2026-11-10T10:45'),
+    hospital: 'Bangkok Hospital', tags: ['Accident', 'OPD'], amount: 6_500,
+    description: 'Ankle sprain from football, treated in the ER with an X-ray and no admission. Documents are complete.',
+    files: [pdf('er_bill.pdf', 180), img('xray_ankle.jpg', 1300)],
+    aiScore: 29, confidence: 93,
+    factors: fx(['Accident rider — minor injury', 15], ['ER visit, no admission', 14]),
+    suggestedRoute: 'Fast-track auto-pay', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10447', client: 'Nuchjaree Kaewmanee', policyNo: 'TL-2024-0259934', receivedAt: at('2026-11-06T12:20'),
+    hospital: 'Bumrungrad International', tags: ['OPD'], amount: 780,
+    description: 'Outpatient visit for a sore throat, with the bill attached.',
+    files: [pdf('opd_bill.pdf', 95)],
+    aiScore: 12, confidence: 98,
+    factors: fx(['Routine OPD visit', 7], ['Within OPD limit', 5]),
+    suggestedRoute: 'Fast-track auto-pay', status: 'approved', finalRoute: 'Fast-track auto-pay',
+  },
+  {
+    id: 'CLM-10440', client: 'Panya Meesuk', policyNo: 'TL-2018-0090087', receivedAt: at('2026-10-30T15:35'),
+    hospital: 'Ramathibodi Hospital', tags: ['Hospital'], amount: 31_000,
+    description: 'Day-case cataract surgery on the left eye. Covered procedure, documents complete.',
+    files: [pdf('operative_note.pdf', 170), pdf('hospital_bill.pdf', 240)],
+    aiScore: 36, confidence: 89,
+    factors: fx(['Day-case surgery', 20], ['Claim amount ฿31k', 16]),
+    suggestedRoute: 'Standard assessor — Health', status: 'ai_suggested',
+  },
+  {
+    id: 'CLM-10425', client: 'Benjamas Arunrat', policyNo: 'TL-2021-0187765', receivedAt: at('2026-10-20T11:00'),
+    hospital: 'Samitivej Sukhumvit', tags: ['OPD'], amount: 2_100,
+    description: 'Physiotherapy session for lower back pain. A referral letter is attached.',
+    files: [pdf('physio_bill.pdf', 130), pdf('referral_letter.pdf', 120)],
+    aiScore: 24, confidence: 95,
+    factors: fx(['Routine OPD visit', 13], ['Referral on file', 11]),
+    suggestedRoute: 'Fast-track auto-pay', status: 'ai_suggested',
+  },
+];
