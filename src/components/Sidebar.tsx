@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { BarChart3, CheckCircle2, FolderOpen, Inbox, ScrollText, Search, SlidersHorizontal, ShieldCheck, X } from 'lucide-react';
+import { BarChart3, BookOpen, CheckCircle2, FolderOpen, Inbox, ScrollText, Search, ShieldCheck, X } from 'lucide-react';
 
 export type Page = 'overview' | 'triage' | 'mine' | 'investigations' | 'completed' | 'performance' | 'audit' | 'rules';
 
@@ -13,11 +13,11 @@ export const PAGE_TITLES: Record<Page, string> = {
 const ITEMS: { page: Page; icon: LucideIcon; muted?: boolean }[] = [
   { page: 'triage', icon: Inbox },
   { page: 'audit', icon: ScrollText },
+  { page: 'rules', icon: BookOpen },
   { page: 'mine', icon: FolderOpen, muted: true },
   { page: 'investigations', icon: Search, muted: true },
   { page: 'completed', icon: CheckCircle2, muted: true },
   { page: 'performance', icon: BarChart3, muted: true },
-  { page: 'rules', icon: SlidersHorizontal, muted: true },
 ];
 
 interface Props { page: Page; onNavigate: (p: Page) => void; triageCount: number; auditCount: number; open: boolean; onClose: () => void }

@@ -3,6 +3,7 @@ import Sidebar, { PAGE_TITLES, type Page } from './components/Sidebar';
 import TopBar from './components/TopBar';
 import TriagePage from './pages/TriagePage';
 import AuditLogPage from './pages/AuditLogPage';
+import RulesPage from './pages/RulesPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import { useClaimsStore } from './state/store';
 import { kpis } from './lib/queue';
@@ -24,6 +25,8 @@ export default function App() {
           <TriagePage claims={state.claims} audit={state.audit} search={search} onClearSearch={() => setSearch('')} approve={approve} edit={edit} reject={reject} />
         ) : page === 'audit' ? (
           <AuditLogPage entries={state.audit} />
+        ) : page === 'rules' ? (
+          <RulesPage />
         ) : (
           <PlaceholderPage name={PAGE_TITLES[page]} onBack={() => setPage('triage')} />
         )}
