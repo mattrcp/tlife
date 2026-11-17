@@ -8,6 +8,7 @@ import { hospitalContact, claimantContact, needsVerify } from '../lib/contacts';
 import { fmtLong, fmtSize, fmtTHB } from '../lib/format';
 import { ScoreRing, StatusPill, Tag, scoreStyle, shortRoute } from './ui';
 import FilePreview from './FilePreview';
+import ClaimChat from './ClaimChat';
 
 interface Props {
   claim: Claim; index: number; total: number;
@@ -33,6 +34,7 @@ export default function ClaimDrawer({ claim: c, index, total, onPrev, onNext, on
   const [route, setRoute] = useState(c.suggestedRoute);
   const [reason, setReason] = useState('');
   const [file, setFile] = useState<ClaimFile | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const panelRef = useRef<HTMLElement>(null);
   const lastIdRef = useRef(c.id);
@@ -72,6 +74,7 @@ export default function ClaimDrawer({ claim: c, index, total, onPrev, onNext, on
       } else if (e.key === 'Escape') {
         if (file) setFile(null);
         else if (mode !== 'view') setMode('view');
+        else if (chatOpen) setChatOpen(false);
         else close();
       } else if (!typing && e.key === 'ArrowRight') onNext();
       else if (!typing && e.key === 'ArrowLeft') onPrev();
@@ -98,8 +101,21 @@ export default function ClaimDrawer({ claim: c, index, total, onPrev, onNext, on
         aria-modal="true"
         aria-label={`Claim ${c.id}, ${c.client}`}
         tabIndex={-1}
-        className={`absolute outline-none inset-y-0 right-0 flex w-full flex-col bg-white shadow-[-24px_0_70px_-24px_rgba(20,20,19,0.4)] transition-transform duration-[400ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] sm:w-[min(46vw,760px)] sm:min-w-[460px] ${shown ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`absolute outline-none inset-y-0 right-0 flex w-full shadow-[-24px_0_70px_-24px_rgba(20,20,19,0.4)] transition-transform duration-[400ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] sm:w-auto ${shown ? 'translate-x-0' : 'translate-x-full'}`}
       >
+        {/* AI assistant — full-height panel docked to the LEFT of the claim (≈30% on desktop, full-screen overlay on mobile) */}
+        <div
+          className={`absolute inset-0 z-30 overflow-hidden border-slate-200 transition-[width,transform] duration-[350ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] sm:relative sm:inset-auto sm:z-auto sm:border-r ${
+            chatOpen ? 'translate-x-0 sm:w-[min(32vw,440px)]' : '-translate-x-full sm:w-0 sm:translate-x-0'
+          }`}
+        >
+          <div className="h-full w-full sm:w-[min(32vw,440px)]">
+            {chatOpen && <ClaimChat key={c.id} claim={c} onClose={() => setChatOpen(false)} />}
+          </div>
+        </div>
+
+        {/* Claim content column */}
+        <div className="flex w-full min-w-0 flex-col bg-white sm:w-[min(46vw,720px)] sm:min-w-[460px]">
         {file ? (
           <FilePreview file={file} claim={c} onBack={() => setFile(null)} />
         ) : (
@@ -111,6 +127,14 @@ export default function ClaimDrawer({ claim: c, index, total, onPrev, onNext, on
                 <span className="text-slate-300">•</span>
                 <span className="font-mono">{c.policyNo}</span>
                 <div className="ml-auto flex items-center gap-1">
+                  <button
+                    onClick={() => setChatOpen((o) => !o)}
+                    aria-pressed={chatOpen}
+                    aria-label="AI assistant"
+                    className={`mr-1 inline-flex h-7 items-center gap-1 rounded-md px-2 text-[12px] font-medium transition active:scale-[0.97] ${chatOpen ? 'bg-violet-100 text-violet-700' : 'text-slate-500 hover:bg-slate-100'}`}
+                  >
+                    <Sparkles size={14} /> <span className="hidden sm:inline">Assistant</span>
+                  </button>
                   <button onClick={onPrev} className="grid h-7 w-7 place-items-center rounded-md hover:bg-slate-100" aria-label="Previous claim"><ChevronLeft size={16} /></button>
                   <span className="tabular-nums">{index >= 0 ? `${index + 1} of ${total}` : `— of ${total}`}</span>
                   <button onClick={onNext} className="grid h-7 w-7 place-items-center rounded-md hover:bg-slate-100" aria-label="Next claim"><ChevronRight size={16} /></button>
@@ -278,6 +302,7 @@ export default function ClaimDrawer({ claim: c, index, total, onPrev, onNext, on
             </div>
           </>
         )}
+        </div>
       </aside>
     </div>,
     document.body,
