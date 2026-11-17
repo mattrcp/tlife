@@ -1,13 +1,10 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { BarChart3, BookOpen, CheckCircle2, FolderOpen, Inbox, ScrollText, Search, ShieldCheck, X } from 'lucide-react';
+import { useLang } from '../i18n/lang';
+import { tPage } from '../i18n/strings';
 
 export type Page = 'overview' | 'triage' | 'mine' | 'investigations' | 'completed' | 'performance' | 'audit' | 'rules';
-
-export const PAGE_TITLES: Record<Page, string> = {
-  overview: 'Overview', triage: 'Triage queue', mine: 'My claims', investigations: 'Investigations',
-  completed: 'Completed', performance: 'Performance', audit: 'Audit log', rules: 'AI rules & thresholds',
-};
 
 // The two working pages first, then the rest muted below a hairline. No group headers — less noise.
 const ITEMS: { page: Page; icon: LucideIcon; muted?: boolean }[] = [
@@ -23,6 +20,7 @@ const ITEMS: { page: Page; icon: LucideIcon; muted?: boolean }[] = [
 interface Props { page: Page; onNavigate: (p: Page) => void; triageCount: number; auditCount: number; open: boolean; onClose: () => void }
 
 export default function Sidebar({ page, onNavigate, triageCount, auditCount, open, onClose }: Props) {
+  const { lang, t } = useLang();
   const listRef = useRef<HTMLUListElement>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [pill, setPill] = useState<{ top: number; height: number } | null>(null);
@@ -53,9 +51,9 @@ export default function Sidebar({ page, onNavigate, triageCount, auditCount, ope
         </div>
         <div className="leading-tight">
           <div className="font-display text-[15px] font-semibold tracking-tight text-white">TLIFE</div>
-          <div className="text-[11px] text-slate-400">Claims Workspace</div>
+          <div className="text-[11px] text-slate-400">{t('brandSub')}</div>
         </div>
-        <button onClick={onClose} aria-label="Close menu" className="ml-auto grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white lg:hidden">
+        <button onClick={onClose} aria-label={t('closeMenu')} className="ml-auto grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white lg:hidden">
           <X size={18} />
         </button>
       </div>
@@ -86,7 +84,7 @@ export default function Sidebar({ page, onNavigate, triageCount, auditCount, ope
                   }`}
                 >
                   <it.icon size={16} className={active ? 'text-blue-400' : 'text-slate-500'} />
-                  <span className="flex-1 text-left">{PAGE_TITLES[it.page]}</span>
+                  <span className="flex-1 text-left">{tPage(lang, it.page)}</span>
                   {count > 0 && (
                     <span className={`rounded-full px-1.5 text-[10px] font-semibold tabular-nums ${it.page === 'triage' ? 'bg-blue-500 text-ink' : 'bg-slate-700 text-slate-200'}`}>
                       {count}
@@ -103,7 +101,7 @@ export default function Sidebar({ page, onNavigate, triageCount, auditCount, ope
         <div className="grid h-8 w-8 place-items-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-300">RN</div>
         <div className="leading-tight">
           <div className="text-[13px] font-medium text-white">Ratchapon N.</div>
-          <div className="text-[11px] text-slate-400">Claims officer</div>
+          <div className="text-[11px] text-slate-400">{t('officerRole')}</div>
         </div>
       </div>
       </aside>

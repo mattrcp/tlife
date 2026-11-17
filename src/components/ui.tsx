@@ -1,6 +1,8 @@
 import { ArrowRight, Check, X } from 'lucide-react';
 import type { Category, Claim, Status } from '../types';
 import { priorityOf } from '../lib/queue';
+import { useLang } from '../i18n/lang';
+import { tBand, tRouteShort, tStatus, tTag } from '../i18n/strings';
 
 export const ROUTE_SHORT: Record<string, string> = {
   'Fast-track auto-pay': 'Fast-track',
@@ -14,11 +16,12 @@ export const shortRoute = (r: string) => ROUTE_SHORT[r] ?? r;
 
 /** The list's last column: the AI's recommended destination, or the officer's decision once made. */
 export function AiRecommends({ claim: c }: { claim: Claim }) {
+  const { lang, t } = useLang();
   if (c.status === 'rejected')
-    return <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12px] font-medium text-rose-600"><X size={13} /> Rejected</span>;
+    return <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12px] font-medium text-rose-600"><X size={13} /> {t('rejectedShort')}</span>;
   if (c.status === 'approved' || c.status === 'edited')
-    return <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12px] font-medium text-emerald-700"><Check size={13} /> {shortRoute(c.finalRoute ?? c.suggestedRoute)}</span>;
-  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12px] text-slate-600"><ArrowRight size={13} className="text-blue-500" /> {shortRoute(c.suggestedRoute)}</span>;
+    return <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12px] font-medium text-emerald-700"><Check size={13} /> {tRouteShort(lang, c.finalRoute ?? c.suggestedRoute)}</span>;
+  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12px] text-slate-600"><ArrowRight size={13} className="text-blue-500" /> {tRouteShort(lang, c.suggestedRoute)}</span>;
 }
 
 const SCORE_STYLE = {
@@ -38,6 +41,7 @@ export function ScoreBadge({ score }: { score: number }) {
 }
 
 export function ScoreRing({ score, size = 64 }: { score: number; size?: number }) {
+  const { lang } = useLang();
   const s = scoreStyle(score);
   return (
     <div
@@ -46,7 +50,7 @@ export function ScoreRing({ score, size = 64 }: { score: number; size?: number }
     >
       <div className="grid place-items-center rounded-full bg-white" style={{ width: size - 14, height: size - 14 }}>
         <span className={`font-display text-lg font-bold leading-none tabular-nums ${s.text}`}>{score}</span>
-        <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">{s.label}</span>
+        <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">{tBand(lang, priorityOf(score))}</span>
       </div>
     </div>
   );
@@ -64,31 +68,33 @@ const TAG_STYLE: Record<Category, string> = {
 };
 
 export function Tag({ label }: { label: Category }) {
+  const { lang } = useLang();
   return (
     <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${TAG_STYLE[label]}`}>
-      {label}
+      {tTag(lang, label)}
     </span>
   );
 }
 
-const STATUS: Record<Status, { label: string; cls: string }> = {
-  ai_suggested: { label: 'Needs review', cls: '' },
-  approved: { label: 'Approved', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-  edited: { label: 'Re-routed', cls: 'bg-slate-100 text-slate-700 ring-slate-300' },
-  rejected: { label: 'Rejected', cls: 'bg-rose-50 text-rose-700 ring-rose-200' },
+const STATUS_CLS: Record<Status, string> = {
+  ai_suggested: '',
+  approved: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  edited: 'bg-slate-100 text-slate-700 ring-slate-300',
+  rejected: 'bg-rose-50 text-rose-700 ring-rose-200',
 };
 
-export const STATUS_LABEL = Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, v.label])) as Record<Status, string>;
+export const STATUS_KEYS: Status[] = ['ai_suggested', 'approved', 'edited', 'rejected'];
 
 export function StatusPill({ status }: { status: Status }) {
-  const s = STATUS[status];
+  const { lang } = useLang();
+  const label = tStatus(lang, status);
   if (status === 'ai_suggested') {
     // Undecided is the default state: keep it quiet so decided claims stand out.
     return (
       <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[12px] text-slate-500">
-        <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />{s.label}
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />{label}
       </span>
     );
   }
-  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${s.cls}`}>{s.label}</span>;
+  return <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${STATUS_CLS[status]}`}>{label}</span>;
 }

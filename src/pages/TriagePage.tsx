@@ -6,6 +6,8 @@ import FilterBar from '../components/FilterBar';
 import ClaimsTable from '../components/ClaimsTable';
 import ClaimDrawer from '../components/ClaimDrawer';
 import Toast, { type ToastMsg } from '../components/Toast';
+import { useLang } from '../i18n/lang';
+import { tRoute } from '../i18n/strings';
 
 interface Props {
   claims: Claim[]; audit: AuditEntry[]; search: string; onClearSearch: () => void;
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export default function TriagePage({ claims, audit, search, onClearSearch, approve, edit, reject }: Props) {
+  const { lang, t } = useLang();
   const [filters, setFilters] = useState<Omit<Filters, 'search'>>(DEFAULT_FILTERS);
   const [openId, setOpenId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastMsg | null>(null);
@@ -44,8 +47,8 @@ export default function TriagePage({ claims, audit, search, onClearSearch, appro
     <div className="space-y-5 p-4 sm:p-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Triage queue</h1>
-          <p className="text-sm text-slate-500">The AI has scored and routed each new claim. Review its suggestion and approve, change the route, or reject.</p>
+          <h1 className="text-xl font-semibold text-slate-900">{t('page.triage')}</h1>
+          <p className="text-sm text-slate-500">{t('triageSubtitle')}</p>
         </div>
       </div>
 
@@ -65,9 +68,9 @@ export default function TriagePage({ claims, audit, search, onClearSearch, appro
           onPrev={() => step(-1)}
           onNext={() => step(1)}
           onClose={() => setOpenId(null)}
-          onApprove={() => { approve(open.id); afterAction(open.id, `${open.id} approved → ${open.suggestedRoute}`); }}
-          onEdit={(r) => { edit(open.id, r); afterAction(open.id, `${open.id} re-routed → ${r}`); }}
-          onReject={(reason) => { reject(open.id, reason); afterAction(open.id, `${open.id} rejected`); }}
+          onApprove={() => { approve(open.id); afterAction(open.id, t('toastApproved', { id: open.id, route: tRoute(lang, open.suggestedRoute) })); }}
+          onEdit={(r) => { edit(open.id, r); afterAction(open.id, t('toastRerouted', { id: open.id, route: tRoute(lang, r) })); }}
+          onReject={(reason) => { reject(open.id, reason); afterAction(open.id, t('toastRejected', { id: open.id })); }}
         />
       )}
 

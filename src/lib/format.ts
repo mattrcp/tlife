@@ -1,15 +1,21 @@
-const TZ = 'Asia/Bangkok';
+import type { Lang } from '../i18n/strings';
 
-export function fmtReceived(iso: string): string {
+const TZ = 'Asia/Bangkok';
+// Thai months with the Gregorian calendar (not Buddhist era), to match the English view.
+const loc = (lang: Lang) => (lang === 'th' ? 'th-TH-u-ca-gregory' : 'en-GB');
+
+export function fmtReceived(iso: string, lang: Lang = 'en'): string {
   const d = new Date(iso);
-  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: TZ });
+  const date = d.toLocaleDateString(loc(lang), { day: 'numeric', month: 'short', timeZone: TZ });
   const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ });
   return `${date} · ${time}`;
 }
 
-export function fmtLong(iso: string): string {
+export function fmtLong(iso: string, lang: Lang = 'en'): string {
   const d = new Date(iso);
-  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ });
+  const date = d.toLocaleDateString(loc(lang), { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ });
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ });
+  return `${date}, ${time}`;
 }
 
 export const fmtTHB = (n: number) => `฿${n.toLocaleString('en-US')}`;
